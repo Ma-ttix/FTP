@@ -6,28 +6,36 @@
 # Keep intermediate files
 #.PRECIOUS: %.o
 
+SRCDIR = src/
+OBJDIR = objs/
+HDRDIR = header/
+
+SRCS=$(wildcard $(SRCDIR)*.c)
+HEADERS=$(SRCS:$(SRCDIR)%.c=$(HDRDIR)%.h)
+OBJS=$(SRCS:$(SRCDIR)%.c=$(OBJDIR)%.o)
+PROGS = ftpclient ftpserverpool
+OBJS := $(filter-out $(PROGS:%=$(OBJDIR)%.o), $(OBJS)) # to remove the objects corresponding to $(PROGS)
+
 CC = gcc
 CFLAGS = -Wall -Werror
-LDFLAGS =
-LIBS += -lpthread
+LIBS = -lpthread
+INCLDIR = -I $(HDRDIR)
 
-INCLUDE = csapp.h ftp.h
-OBJS = csapp.o ftprequete.o
-INCLDIR = -I.
-
-PROGS = ftpclient ftpserverpool
 
 ifdef NPROC
 CFLAGS += -DNPROC=$(NPROC)
 endif
 
-all: $(PROGS)
+all: gendir $(PROGS)
 
-%.o: %.c $(INCLUDE)
+gendir:
+	@if [ ! -d $(OBJDIR) ]; then mkdir $(OBJDIR); fi
+
+$(OBJDIR)%.o: $(SRCDIR)%.c $(HDRDIR)ftp.h
 	$(CC) $(CFLAGS) $(INCLDIR) -c -o $@ $<
 
-$(PROGS): %: %.o $(OBJS)
-	$(CC) -o $@ $(LDFLAGS) $^ $(LIBS)
+$(PROGS): %: $(OBJDIR)%.o $(OBJS)
+	$(CC) $^ -o $@ $(LIBS)
 
 clean:
-	rm -f $(PROGS) *.o
+	rm -rf $(PROGS) $(OBJDIR)
