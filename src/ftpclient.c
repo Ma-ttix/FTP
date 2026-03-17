@@ -40,9 +40,8 @@ int main(int argc, char **argv)
     request_t req; //= malloc(sizeof(request_t));
     strcpy(req.nomfic, ficin);
     req.typereq = GET;
-    printf("nomFic: %s\n", req.nomfic);
-    Rio_writen(clientfd, req.nomfic, strlen(req.nomfic)); // envoie le nom du fichier au serveur
-    //Rio_writen(clientfd, htons(req.typereq), sizeof(req.typereq));
+    //fprintf(stderr, "nomFic: %s\n", req.nomfic);
+    Rio_writen(clientfd, &req, sizeof(request_t)); // envoie le nom du fichier au serveur
 
     char ficout[] = "client/";
     strcat(ficout, req.nomfic);

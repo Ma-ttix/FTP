@@ -22,6 +22,7 @@ char* copyFile(const char *filename, long *filesize){
     }
 
     *filesize = getfileSize(filename);
+    fprintf(stderr,"debug\n");
     if(*filesize == -1){
         fclose(file);
         return NULL;
@@ -54,12 +55,12 @@ void ftp(int connfd){
     Rio_readinitb(&rio, connfd);
     //Rio_readlineb(&rio, buf, MAXLINE); // lecture nom de fichier à lire: readlineb car on ne sait pas combien d'octets on va lire
     request_t req;
-    Rio_readnb(&rio, req.nomfic, sizeof(req.nomfic));
-    //Rio_readnb(&rio, &req.typereq, sizeof(req.typereq));
+    Rio_readnb(&rio, &req, sizeof(request_t));
 
     char dirname[] = "server/";
     strcat(dirname, req.nomfic);
     strcpy(req.nomfic, dirname);
+    fprintf(stderr, "%s\n", req.nomfic);
     FILE* fd = fopen(req.nomfic, "r");
     if(fd){
         fprintf(stderr, "File open\n");
@@ -69,14 +70,21 @@ void ftp(int connfd){
         return;
     }
 
-    long* fileSize = 0;
-    char* file = copyFile(req.nomfic, fileSize);
+    long fileSize = 0;
+    char* file = copyFile(req.nomfic, &fileSize);
+    fprintf(stderr,"debuged\n");
     response_t response;
-    if(!file) response.code = 1; // si erreur
-    else response.code = 0;
-    response.fileSize = *fileSize;
-    Rio_writen(connfd, &response, sizeof(response_t));
-    Rio_writen(connfd, file, *fileSize);
-
-    fprintf(stderr, "Successful write on socket\nDisconnecting\n");
+    if(!file){ // si erreur
+        response.code = 1;
+        response.fileSize = 0;
+        Rio_writen(connfd, &response, sizeof(response_t));
+        fprintf(stderr, "Unsuccessful write on socket\nDisconnecting\n");
+    }
+    else{
+        response.code = 0;
+        response.fileSize = fileSize;
+        Rio_writen(connfd, &response, sizeof(response_t));
+        Rio_writen(connfd, file, fileSize);
+        fprintf(stderr, "Successful write on socket\nDisconnecting\n");
+    }
 }
