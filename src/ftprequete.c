@@ -14,7 +14,7 @@ long getfileSize(const char *filename){
     return size;
 }
 
-char* copyFile(const char *filename, long *filesize){
+char* copyFile(const char *filename, size_t *filesize){
     FILE *file = fopen(filename, "rb");
     if(file == NULL){
         perror("fopen");
@@ -34,7 +34,8 @@ char* copyFile(const char *filename, long *filesize){
         return NULL;
     }
 
-    int bytesRead = fread(buffer, 1, *filesize, file);
+    size_t bytesRead = fread(buffer, 1, *filesize, file);
+    fprintf(stderr, "bytesRead: %ld fileSize: %ld\n", bytesRead, *filesize);
     if(bytesRead!=*filesize){
         perror("fread");
         free(buffer);
@@ -63,7 +64,7 @@ void requestGETs(int connfd, request_t req){
         return;
     }
 
-    long fileSize = 0;
+    size_t fileSize = 0;
     char* file = copyFile(req.nomfic, &fileSize);
     if(!file){ // si erreur
         response.code = 2;
