@@ -43,26 +43,31 @@ int main(int argc, char **argv)
     //fprintf(stderr, "nomFic: %s\n", req.nomfic);
     Rio_writen(clientfd, &req, sizeof(request_t)); // envoie le nom du fichier au serveur
 
-    char ficout[] = "client/";
-    strcat(ficout, req.nomfic);
-    FILE* fd = fopen(ficout, "w");
-    if(!fd) perror("fopen ficout");
-
     /*while (Rio_readlineb(&rio, buf, MAXLINE) > 0){
         Fputs(buf, fd);
     }*/
     response_t response;
     Rio_readnb(&rio, &response, sizeof(response_t));
-    if(response.code == 1) exit(1); // traiter cas erreur
+    if(response.code == 1){
+        fprintf(stderr,"Erreur\n"); // traiter cas erreur
+        exit(1);
+    }
     char *buffer = malloc(response.fileSize);
     Rio_readnb(&rio, buffer, response.fileSize);
+
+    char tmp[MAXLINE + 7]; // + 7 pour la taille de "client/"
+    snprintf(tmp, sizeof(tmp), "client/%s", req.nomfic);
+    strcpy(req.nomfic, tmp);
+    FILE* fd = fopen(req.nomfic, "w");
+    if(!fd) perror("fopen");
 
     int bytesWritten = fwrite(buffer, 1, response.fileSize, fd);
     if(bytesWritten != response.fileSize){
         perror("Erreur lors de l'écriture dans le fichier");
+        exit(1);
     }
 
-    fprintf(stderr, "Successful write on file: %s\n", ficout);
+    fprintf(stdout, "Successful write on file: %s\n", req.nomfic);
     fclose(fd);
     Close(clientfd);
     exit(0);
