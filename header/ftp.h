@@ -1,7 +1,7 @@
 #ifndef FTP_H
 #define FTP_H
 
-typedef enum {GET}typereq_t;
+typedef enum {GET, FAUX}typereq_t;
 
 typedef struct{
     typereq_t typereq;

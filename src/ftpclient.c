@@ -4,6 +4,69 @@
 #include "csapp.h"
 #include "ftp.h"
 
+char** parseString(char* s){
+    char** res = malloc(2*sizeof(char*));
+    if(!res){
+        perror("malloc");
+        exit(1);
+    }
+    res[0] = strtok(s, " ");
+    res[1] = strtok(NULL, " ");
+    if(!res[1]){
+        fprintf(stdout, "Missing argument\nUsage: <commande> <filename>\n");
+        exit(1);
+    }
+    res[1][strcspn(res[1], "\n")] = '\0'; // strcspn retourne l'index de la première occurrence de \n dans buf, par accès au tableau on remplace donc le \n par \0, afin que le nom du fichier soit correct pour Fopen (echo.c\0 est valide mais pas echo.c\n\0)
+    return res;
+}
+
+void traiterNomCommande(request_t* req, char* mot){
+    if(strcmp(mot, "get") == 0) req->typereq = GET;
+    //else if(strcmp(mot, "ls") == 0) req->typereq = LS;
+    //else if(strcmp(mot, "rm") == 0) req->typereq = RM;
+    //else if(strcmp(mot, "PUT") == 0) req->typereq = PUT;
+    else req->typereq = FAUX;
+}
+
+void traiterErreur(int code){
+    switch(code){
+        case 1:
+            fprintf(stderr, "Error: Invalide file name\n");
+            exit(1);
+        case 2:
+            fprintf(stderr, "Error: Unsuccessful write from server\n");
+            exit(2);
+        case 3:
+            fprintf(stderr, "Error: Invalid command name\n");
+            exit(3);
+        default:
+            return;
+    }
+}
+
+void requestGETc(rio_t* rio, request_t* req, response_t* response){
+    char *buffer = malloc(response->fileSize);
+    Rio_readnb(rio, buffer, response->fileSize);
+
+    char tmp[MAXLINE + 7]; // + 7 pour la taille de "client/"
+    snprintf(tmp, sizeof(tmp), "client/%s", req->nomfic);
+    strcpy(req->nomfic, tmp);
+    FILE* fd = fopen(req->nomfic, "w");
+    if(!fd){
+        perror("fopen");
+        exit(1);
+    }
+
+    int bytesWritten = fwrite(buffer, 1, response->fileSize, fd);
+    if(bytesWritten != response->fileSize){
+        perror("fwrite");
+        exit(1);
+    }
+
+    fprintf(stdout, "Successful write on file: %s\n", req->nomfic);
+    fclose(fd);
+}
+
 int main(int argc, char **argv)
 {
     int clientfd, port;
@@ -34,41 +97,24 @@ int main(int argc, char **argv)
     Rio_readinitb(&rio, clientfd);
 
     char ficin[MAXLINE];
-    printf("Enter file input name: ");
-    Fgets(ficin, MAXLINE, stdin); // afin de lire avec \n pour l'envoyer (et surtout le lire facilement)
-    ficin[strcspn(ficin, "\n")] = '\0'; // strcspn retourne l'index de la première occurrence de \n dans buf, par accès au tableau on remplace donc le \n par \0, afin que le nom du fichier soit correct pour Fopen (echo.c\0 est valide mais pas echo.c\n\0)
-    request_t req; //= malloc(sizeof(request_t));
-    strcpy(req.nomfic, ficin);
-    req.typereq = GET;
-    //fprintf(stderr, "nomFic: %s\n", req.nomfic);
-    Rio_writen(clientfd, &req, sizeof(request_t)); // envoie le nom du fichier au serveur
+    printf("ftp>: ");
+    Fgets(ficin, MAXLINE, stdin); // afin de lire la requête de l'utilisateur
+    char** reqUser = parseString(ficin);
 
-    /*while (Rio_readlineb(&rio, buf, MAXLINE) > 0){
-        Fputs(buf, fd);
-    }*/
+    request_t req; //= malloc(sizeof(request_t));
+    traiterNomCommande(&req, reqUser[0]);
+    strcpy(req.nomfic, reqUser[1]);
+
+    Rio_writen(clientfd, &req, sizeof(request_t)); // envoie la requête au serveur
+
     response_t response;
     Rio_readnb(&rio, &response, sizeof(response_t));
-    if(response.code == 1){
-        fprintf(stderr,"Erreur\n"); // traiter cas erreur
-        exit(1);
-    }
-    char *buffer = malloc(response.fileSize);
-    Rio_readnb(&rio, buffer, response.fileSize);
+    traiterErreur(response.code); // code exécuté après ça signifie qu'on a pas eu d'erreur
 
-    char tmp[MAXLINE + 7]; // + 7 pour la taille de "client/"
-    snprintf(tmp, sizeof(tmp), "client/%s", req.nomfic);
-    strcpy(req.nomfic, tmp);
-    FILE* fd = fopen(req.nomfic, "w");
-    if(!fd) perror("fopen");
-
-    int bytesWritten = fwrite(buffer, 1, response.fileSize, fd);
-    if(bytesWritten != response.fileSize){
-        perror("Erreur lors de l'écriture dans le fichier");
-        exit(1);
+    if(req.typereq == GET){
+        requestGETc(&rio, &req, &response);
     }
 
-    fprintf(stdout, "Successful write on file: %s\n", req.nomfic);
-    fclose(fd);
     Close(clientfd);
     exit(0);
 }
