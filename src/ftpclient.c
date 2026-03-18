@@ -45,6 +45,8 @@ void traiterErreur(int code){
 }
 
 void requestGETc(rio_t* rio, request_t* req, response_t* response){
+    //int debut, fin;
+    //debut = clock();
     char *buffer = malloc(response->fileSize);
     Rio_readnb(rio, buffer, response->fileSize);
 
@@ -64,6 +66,10 @@ void requestGETc(rio_t* rio, request_t* req, response_t* response){
     }
 
     fprintf(stdout, "Successful write on file: %s\n", req->nomfic);
+    /*fin = clock();
+    double duree = (double)(fin - debut) / CLOCKS_PER_SEC;
+    double debitK = response->fileSize / (1000 * duree);
+    fprintf(stdout, "%d bytes received in %f seconds (%.2f Kbytes/s)\n", response->fileSize, duree, debitK);*/
     fclose(fd);
 }
 
