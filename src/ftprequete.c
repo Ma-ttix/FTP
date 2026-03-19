@@ -9,7 +9,7 @@ long getfileSize(const char *filename){
     }
 
     fseek(file, 0, SEEK_END);
-    long size = ftell(file);
+    size_t size = ftell(file);
     fclose(file);
     return size;
 }
@@ -35,7 +35,7 @@ char* copyFile(const char *filename, size_t *filesize){
     }
 
     size_t bytesRead = fread(buffer, 1, *filesize, file);
-    fprintf(stderr, "bytesRead: %ld fileSize: %ld\n", bytesRead, *filesize);
+    //fprintf(stderr, "bytesRead: %ld fileSize: %ld\n", bytesRead, *filesize);
     if(bytesRead!=*filesize){
         perror("fread");
         free(buffer);

@@ -44,9 +44,7 @@ void traiterErreur(int code){
     }
 }
 
-void requestGETc(rio_t* rio, request_t* req, response_t* response){
-    //int debut, fin;
-    //debut = clock();
+void requestGETc(rio_t* rio, request_t* req, response_t* response, struct timeval* debut){
     char *buffer = malloc(response->fileSize);
     Rio_readnb(rio, buffer, response->fileSize);
 
@@ -66,11 +64,15 @@ void requestGETc(rio_t* rio, request_t* req, response_t* response){
     }
 
     fprintf(stdout, "Successful write on file: %s\n", req->nomfic);
-    /*fin = clock();
-    double duree = (double)(fin - debut) / CLOCKS_PER_SEC;
-    double debitK = response->fileSize / (1000 * duree);
-    fprintf(stdout, "%d bytes received in %f seconds (%.2f Kbytes/s)\n", response->fileSize, duree, debitK);*/
+
     fclose(fd);
+
+    struct timeval fin;
+    gettimeofday(&fin, NULL);
+    double duree = (double)(fin.tv_sec - debut->tv_sec) + (double)(fin.tv_usec - debut->tv_usec) / 1000000;
+    double debitK = response->fileSize / (1000 * duree);
+    fprintf(stdout, "%d bytes received in %f seconds (%.2f Kbytes/s)\n", response->fileSize, duree, debitK);
+
 }
 
 int main(int argc, char **argv)
@@ -105,6 +107,8 @@ int main(int argc, char **argv)
     char ficin[MAXLINE];
     printf("ftp>: ");
     Fgets(ficin, MAXLINE, stdin); // afin de lire la requête de l'utilisateur
+    struct timeval debut;
+    gettimeofday(&debut, NULL);
     char** reqUser = parseString(ficin);
 
     request_t req; //= malloc(sizeof(request_t));
@@ -118,7 +122,7 @@ int main(int argc, char **argv)
     traiterErreur(response.code); // code exécuté après ça signifie qu'on a pas eu d'erreur
 
     if(req.typereq == GET){
-        requestGETc(&rio, &req, &response);
+        requestGETc(&rio, &req, &response, &debut);
     }
 
     Close(clientfd);
