@@ -3,6 +3,7 @@
  */
 #include "csapp.h"
 #include "ftp.h"
+#include <time.h>
 
 char** parseString(char* s){
     char** res = malloc(2*sizeof(char*));
@@ -46,7 +47,7 @@ void traiterErreur(int code){
 
 void requestGETc(rio_t* rio, request_t* req, response_t* response, struct timeval* debut){
     char *buffer = malloc(response->fileSize);
-    Rio_readnb(rio, buffer, response->fileSize);
+    int sizeRead = Rio_readnb(rio, buffer, response->fileSize);
 
     char tmp[MAXLINE + 7]; // + 7 pour la taille de "client/"
     snprintf(tmp, sizeof(tmp), "client/%s", req->nomfic);
@@ -70,8 +71,8 @@ void requestGETc(rio_t* rio, request_t* req, response_t* response, struct timeva
     struct timeval fin;
     gettimeofday(&fin, NULL);
     double duree = (double)(fin.tv_sec - debut->tv_sec) + (double)(fin.tv_usec - debut->tv_usec) / 1000000;
-    double debitK = response->fileSize / (1000 * duree);
-    fprintf(stdout, "%d bytes received in %f seconds (%.2f Kbytes/s)\n", response->fileSize, duree, debitK);
+    double debitK = sizeRead / (1000 * duree);
+    fprintf(stdout, "%d bytes received in %f seconds (%.2f Kbytes/s)\n", sizeRead, duree, debitK);
 
 }
 
