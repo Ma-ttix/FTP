@@ -15,6 +15,7 @@ long getfileSize(const char *filename){
 }
 
 char* copyFile(const char *filename, size_t *filesize){
+    int taillePaquet = 128;
     FILE *file = fopen(filename, "rb");
     if(file == NULL){
         perror("fopen");
@@ -34,9 +35,14 @@ char* copyFile(const char *filename, size_t *filesize){
         return NULL;
     }
 
-    size_t bytesRead = fread(buffer, 1, *filesize, file);
-    fprintf(stderr, "bytesRead: %ld fileSize: %ld\n", bytesRead, *filesize);
-    if(bytesRead!=*filesize){
+    size_t totalOctetLu = 0;
+    size_t bytesRead;
+    while((bytesRead = fread(buffer, 1, taillePaquet, file)) > 0){
+        totalOctetLu += bytesRead;
+        fprintf(stderr, "bytesRead: %ld taillePaquet: %d  totalOctetLu: %ld\n", bytesRead, taillePaquet, totalOctetLu);
+    }
+    
+    if(totalOctetLu!=*filesize){
         perror("fread");
         free(buffer);
         fclose(file);
