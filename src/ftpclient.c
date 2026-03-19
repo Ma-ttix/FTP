@@ -3,6 +3,7 @@
  */
 #include "csapp.h"
 #include "ftp.h"
+#include <time.h>
 
 char** parseString(char* s){
     char** res = malloc(2*sizeof(char*));
@@ -47,8 +48,16 @@ void traiterErreur(int code){
 void requestGETc(rio_t* rio, request_t* req, response_t* response){
     //int debut, fin;
     //debut = clock();
+
+    //time_t begin = time( NULL );
+
+    clock_t start, end;
+    
+    // Capture le temps de départ
+    start = clock();
+
     char *buffer = malloc(response->fileSize);
-    Rio_readnb(rio, buffer, response->fileSize);
+    int n = Rio_readnb(rio, buffer, response->fileSize);
 
     char tmp[MAXLINE + 7]; // + 7 pour la taille de "client/"
     snprintf(tmp, sizeof(tmp), "client/%s", req->nomfic);
@@ -66,10 +75,12 @@ void requestGETc(rio_t* rio, request_t* req, response_t* response){
     }
 
     fprintf(stdout, "Successful write on file: %s\n", req->nomfic);
-    /*fin = clock();
-    double duree = (double)(fin - debut) / CLOCKS_PER_SEC;
-    double debitK = response->fileSize / (1000 * duree);
-    fprintf(stdout, "%d bytes received in %f seconds (%.2f Kbytes/s)\n", response->fileSize, duree, debitK);*/
+
+    end = clock();
+    double seconde = (double)(end - start) / CLOCKS_PER_SEC; // CLCOKS PER SECONDE est le nombre de tic d'horloge par seconde
+    double kb_seconde = (n / 1024.0)/seconde; // division par 0.00001 car si division par seconde alors division par 0
+    printf( "%d bytes, received in %f sec (%f Kbytes/s)\n", n, seconde, kb_seconde);  
+
     fclose(fd);
 }
 
