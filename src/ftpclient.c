@@ -25,7 +25,7 @@ void traiterNomCommande(request_t* req, char* mot){
     if(strcmp(mot, "get") == 0) req->typereq = GET;
     //else if(strcmp(mot, "ls") == 0) req->typereq = LS;
     //else if(strcmp(mot, "rm") == 0) req->typereq = RM;
-    //else if(strcmp(mot, "PUT") == 0) req->typereq = PUT;
+    //else if(strcmp(mot, "put") == 0) req->typereq = PUT;
     else req->typereq = FAUX;
 }
 
@@ -46,9 +46,6 @@ void traiterErreur(int code){
 }
 
 void requestGETc(rio_t* rio, request_t* req, response_t* response, struct timeval* debut){
-    char *buffer = malloc(response->fileSize);
-    int sizeRead = Rio_readnb(rio, buffer, response->fileSize);
-
     char tmp[MAXLINE + 7]; // + 7 pour la taille de "client/"
     snprintf(tmp, sizeof(tmp), "client/%s", req->nomfic);
     strcpy(req->nomfic, tmp);
@@ -58,10 +55,30 @@ void requestGETc(rio_t* rio, request_t* req, response_t* response, struct timeva
         exit(1);
     }
 
-    int bytesWritten = fwrite(buffer, 1, response->fileSize, fd);
-    if(bytesWritten != response->fileSize){
-        perror("fwrite");
+    char* packet = malloc(PACKET_SIZE);
+    if(packet == NULL){
+        perror("malloc");
         exit(1);
+    }
+    size_t fileSize = response->fileSize;
+    int i = 0;
+    while(i!=response->nbPackets){
+        size_t packetRead = Rio_readnb(rio, packet, PACKET_SIZE);
+        size_t bytesWritten = fwrite(packet, 1, packetRead, fd);
+        if(bytesWritten!=packetRead){
+            perror("fwrite");
+            exit(1);
+        }
+        i++;
+    }
+
+    if(response->lastPacketSize!=0){
+        size_t packetRead = Rio_readnb(rio, packet, response->lastPacketSize);
+        size_t bytesWritten = fwrite(packet, 1, packetRead, fd);
+        if(bytesWritten!=packetRead){
+            perror("fwrite");
+            exit(1);
+        }
     }
 
     fprintf(stdout, "Successful write on file: %s\n", req->nomfic);
@@ -71,8 +88,8 @@ void requestGETc(rio_t* rio, request_t* req, response_t* response, struct timeva
     struct timeval fin;
     gettimeofday(&fin, NULL);
     double duree = (double)(fin.tv_sec - debut->tv_sec) + (double)(fin.tv_usec - debut->tv_usec) / 1000000;
-    double debitK = sizeRead / (1000 * duree);
-    fprintf(stdout, "%d bytes received in %f seconds (%.2f Kbytes/s)\n", sizeRead, duree, debitK);
+    double debitK = fileSize / (1000 * duree);
+    fprintf(stdout, "%ld bytes received in %f seconds (%.2f Kbytes/s)\n", fileSize, duree, debitK);
 
 }
 

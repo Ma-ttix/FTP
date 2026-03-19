@@ -1,6 +1,8 @@
 #ifndef FTP_H
 #define FTP_H
 
+#define PACKET_SIZE 4096
+
 typedef enum {GET, FAUX}typereq_t;
 
 typedef struct{
@@ -10,7 +12,9 @@ typedef struct{
 
 typedef struct{
     int code;
-    int fileSize;
+    size_t fileSize;
+    int nbPackets;
+    size_t lastPacketSize;
 } response_t;
 
 #endif
