@@ -5,20 +5,14 @@
 #include "ftp.h"
 #include <time.h>
 
-char** parseString(char* s){
-    char** res = malloc(2*sizeof(char*));
-    if(!res){
-        perror("malloc");
-        exit(1);
-    }
+void parseString(char* s, char*** adrRes){
+    char** res = *adrRes;
     res[0] = strtok(s, " ");
     res[1] = strtok(NULL, " ");
-    if(!res[1]){
+    /*if(!res[1]){
         fprintf(stdout, "Missing argument\nUsage: <commande> <filename>\n");
         exit(1);
-    }
-    res[1][strcspn(res[1], "\n")] = '\0'; // strcspn retourne l'index de la première occurrence de \n dans buf, par accès au tableau on remplace donc le \n par \0, afin que le nom du fichier soit correct pour Fopen (echo.c\0 est valide mais pas echo.c\n\0)
-    return res;
+    }*/
 }
 
 void traiterNomCommande(request_t* req, char* mot){
@@ -67,6 +61,7 @@ void requestGETc(rio_t* rio, request_t* req, response_t* response, struct timeva
         size_t bytesWritten = fwrite(packet, 1, packetRead, fd);
         if(bytesWritten!=packetRead){
             perror("fwrite");
+            free(packet);
             exit(1);
         }
         i++;
@@ -77,12 +72,14 @@ void requestGETc(rio_t* rio, request_t* req, response_t* response, struct timeva
         size_t bytesWritten = fwrite(packet, 1, packetRead, fd);
         if(bytesWritten!=packetRead){
             perror("fwrite");
+            free(packet);
             exit(1);
         }
     }
 
     fprintf(stdout, "Successful write on file: %s\n", req->nomfic);
 
+    free(packet);
     fclose(fd);
 
     struct timeval fin;
@@ -127,11 +124,20 @@ int main(int argc, char **argv)
     Fgets(ficin, MAXLINE, stdin); // afin de lire la requête de l'utilisateur
     struct timeval debut;
     gettimeofday(&debut, NULL);
-    char** reqUser = parseString(ficin);
+    char** reqUser = malloc(2*sizeof(char*));
+    if(!reqUser){
+        perror("malloc");
+        exit(1);
+    }
+    parseString(ficin, &reqUser);
 
     request_t req; //= malloc(sizeof(request_t));
     traiterNomCommande(&req, reqUser[0]);
-    strcpy(req.nomfic, reqUser[1]);
+    if(req.typereq == GET){ // si on fait get et donc qu'on a eu une 2ème argument
+        reqUser[1][strcspn(reqUser[1], "\n")] = '\0'; // strcspn retourne l'index de la première occurrence de \n dans buf, par accès au tableau on remplace donc le \n par \0, afin que le nom du fichier soit correct pour Fopen (echo.c\0 est valide mais pas echo.c\n\0)
+        strcpy(req.nomfic, reqUser[1]);
+    }
+    free(reqUser);
 
     Rio_writen(clientfd, &req, sizeof(request_t)); // envoie la requête au serveur
 
