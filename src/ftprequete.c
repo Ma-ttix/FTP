@@ -64,6 +64,12 @@ void ftp(int connfd){
     Rio_readinitb(&rio, connfd);
     request_t req;
     Rio_readnb(&rio, &req, sizeof(request_t));
+    
+    if(req.typereq == BYE){
+        printf("terminé\n");
+        close(connfd);
+        exit(0);
+    }
 
     if(req.typereq == GET){
         requestGETs(connfd, req);

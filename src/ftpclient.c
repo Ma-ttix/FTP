@@ -24,6 +24,7 @@ void traiterNomCommande(request_t* req, char* mot){
     //else if(strcmp(mot, "ls") == 0) req->typereq = LS;
     //else if(strcmp(mot, "rm") == 0) req->typereq = RM;
     //else if(strcmp(mot, "put") == 0) req->typereq = PUT;
+    else if(strcmp(mot, "bye") == 0) req->typereq = BYE;
     else req->typereq = FAUX;
 }
 
@@ -112,47 +113,54 @@ int main(int argc, char **argv)
      * If necessary, Open_clientfd will perform the name resolution
      * to obtain the IP address.
      */
-    clientfd = Open_clientfd(host, port);
+    while(1){
+        clientfd = Open_clientfd(host, port);
 
-    /*
-     * At this stage, the connection is established between the client
-     * and the server OS ... but it is possible that the server application
-     * has not yet called "Accept" for this connection
-     */
-    printf("client connected to server OS\n");
+        /*
+        * At this stage, the connection is established between the client
+        * and the server OS ... but it is possible that the server application
+        * has not yet called "Accept" for this connection
+        */
+        printf("client connected to server OS\n");
 
-    Rio_readinitb(&rio, clientfd);
+        Rio_readinitb(&rio, clientfd);
 
-    char ficin[MAXLINE];
-    printf("ftp>: ");
-    Fgets(ficin, MAXLINE, stdin); // afin de lire la requête de l'utilisateur
-    struct timeval debut;
-    gettimeofday(&debut, NULL);
-    char** reqUser = malloc(2*sizeof(char*));
-    if(!reqUser){
-        perror("malloc");
-        exit(1);
+        char ficin[MAXLINE];
+        printf("ftp>: ");
+        Fgets(ficin, MAXLINE, stdin); // afin de lire la requête de l'utilisateur
+        struct timeval debut;
+        gettimeofday(&debut, NULL);
+        char** reqUser = malloc(2*sizeof(char*));
+        if(!reqUser){
+            perror("malloc");
+            exit(1);
+        }
+        parseString(ficin, &reqUser);
+
+        request_t req; //= malloc(sizeof(request_t));
+        traiterNomCommande(&req, reqUser[0]);
+        if(reqUser[1]) strcpy(req.nomfic, reqUser[1]); // if nécessaire sinon segfault
+        free(reqUser);
+        if(req.typereq == GET && (strcmp(req.nomfic, "") == 0)){ // si le nom de fichier est vide (si get avec un seul argument)
+            fprintf(stderr, "Missing file name\nUsage: get <filename>\n");
+            exit(1);
+        }
+
+        Rio_writen(clientfd, &req, sizeof(request_t)); // envoie la requête au serveur
+
+        response_t response;
+        Rio_readnb(&rio, &response, sizeof(response_t));
+        traiterErreur(response.code); // code exécuté après ça signifie qu'on a pas eu d'erreur
+
+        if(req.typereq == GET){
+            requestGETc(&rio, &req, &response, &debut);
+        }
+        if(req.typereq == BYE){
+            Close(clientfd);
+            exit(0);
+        }
     }
-    parseString(ficin, &reqUser);
-
-    request_t req; //= malloc(sizeof(request_t));
-    traiterNomCommande(&req, reqUser[0]);
-    if(reqUser[1]) strcpy(req.nomfic, reqUser[1]); // if nécessaire sinon segfault
-    free(reqUser);
-    if(req.typereq == GET && (strcmp(req.nomfic, "") == 0)){ // si le nom de fichier est vide (si get avec un seul argument)
-        fprintf(stderr, "Missing file name\nUsage: get <filename>\n");
-        exit(1);
-    }
-
-    Rio_writen(clientfd, &req, sizeof(request_t)); // envoie la requête au serveur
-
-    response_t response;
-    Rio_readnb(&rio, &response, sizeof(response_t));
-    traiterErreur(response.code); // code exécuté après ça signifie qu'on a pas eu d'erreur
-
-    if(req.typereq == GET){
-        requestGETc(&rio, &req, &response, &debut);
-    }
+    
 
     Close(clientfd);
     exit(0);

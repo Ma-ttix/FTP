@@ -51,25 +51,20 @@ int main(int argc, char **argv)
         i++;
     }
     if(pid == 0){
-        //printf("im the child %d of pid %d\n", i, getpid());
         while (1) {
-
             connfd = accept(listenfd, (SA *)&clientaddr, &clientlen);
             if(connfd < 0) continue;
-
+            printf("server connected\n");
             /* determine the name of the client */
             Getnameinfo((SA *) &clientaddr, clientlen, client_hostname, MAX_NAME_LEN, 0, 0, 0);
 
             /* determine the textual representation of the client's IP address */
             Inet_ntop(AF_INET, &clientaddr.sin_addr, client_ip_string, INET_ADDRSTRLEN);
 
-            printf("server connected to %s (%s)\n", client_hostname, client_ip_string);
-            printf("connected using child %d of pid %d\n", i, getpid());
-
             ftp(connfd);
-            Close(connfd);
-            printf("server disconnected to %s (%s)\n", client_hostname, client_ip_string);
         }
+        Close(connfd);
+        printf("server disconnected to %s (%s)\n", client_hostname, client_ip_string);
     }
     else{
         while(waitpid(-1, NULL, 0)>0);
