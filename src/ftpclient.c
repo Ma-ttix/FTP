@@ -8,7 +8,11 @@
 void parseString(char* s, char*** adrRes){
     char** res = *adrRes;
     res[0] = strtok(s, " ");
+    res[0][strcspn(res[0], "\n")] = '\0'; // si commande simple (sans 2ème argument) on va enlever le \n afin que traiterNomCommande reconnaise bien la commande
     res[1] = strtok(NULL, " ");
+    if(res[1]){ // si on a un 2ème argument
+        res[1][strcspn(res[1], "\n")] = '\0'; // strcspn retourne l'index de la première occurrence de \n dans buf, par accès au tableau on remplace donc le \n par \0, afin que le nom du fichier soit correct pour Fopen (echo.c\0 est valide mais pas echo.c\n\0)
+    }
     /*if(!res[1]){
         fprintf(stdout, "Missing argument\nUsage: <commande> <filename>\n");
         exit(1);
@@ -133,11 +137,12 @@ int main(int argc, char **argv)
 
     request_t req; //= malloc(sizeof(request_t));
     traiterNomCommande(&req, reqUser[0]);
-    if(req.typereq == GET){ // si on fait get et donc qu'on a eu une 2ème argument
-        reqUser[1][strcspn(reqUser[1], "\n")] = '\0'; // strcspn retourne l'index de la première occurrence de \n dans buf, par accès au tableau on remplace donc le \n par \0, afin que le nom du fichier soit correct pour Fopen (echo.c\0 est valide mais pas echo.c\n\0)
-        strcpy(req.nomfic, reqUser[1]);
-    }
+    if(reqUser[1]) strcpy(req.nomfic, reqUser[1]); // if nécessaire sinon segfault
     free(reqUser);
+    if(req.typereq == GET && (strcmp(req.nomfic, "") == 0)){ // si le nom de fichier est vide (si get avec un seul argument)
+        fprintf(stderr, "Missing file name\nUsage: get <filename>\n");
+        exit(1);
+    }
 
     Rio_writen(clientfd, &req, sizeof(request_t)); // envoie la requête au serveur
 
