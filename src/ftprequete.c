@@ -54,9 +54,12 @@ void requestGETs(int connfd, request_t req){
     int i = 0;
     while((sizePacket = fread(file, 1, PACKET_SIZE, fd)) > 0){
         Rio_writen(connfd, file, sizePacket);
+        #ifdef TALK
         fprintf(stderr, "writing packet %d with size %ld\n", i, sizePacket);
+        #endif
         i++;
     }
+    fprintf(stdout, "Ssuccessful write on socket\n");
     free(file);
     fclose(fd);
 }

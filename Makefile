@@ -26,6 +26,10 @@ ifdef NPROC
 CFLAGS += -DNPROC=$(NPROC)
 endif
 
+ifdef TALK
+CFLAGS += -DTALK=$(TALK)
+endif
+
 all: gendir $(PROGS)
 
 gendir:

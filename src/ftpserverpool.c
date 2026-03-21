@@ -51,7 +51,9 @@ int main(int argc, char **argv)
         i++;
     }
     if(pid == 0){
-        //printf("im the child %d of pid %d\n", i, getpid());
+        #ifdef TALK
+        printf("im the child %d of pid %d\n", i, getpid());
+        #endif
         while (1) {
 
             connfd = accept(listenfd, (SA *)&clientaddr, &clientlen);
@@ -64,7 +66,9 @@ int main(int argc, char **argv)
             Inet_ntop(AF_INET, &clientaddr.sin_addr, client_ip_string, INET_ADDRSTRLEN);
 
             printf("server connected to %s (%s)\n", client_hostname, client_ip_string);
+            #ifdef TALK
             printf("connected using child %d of pid %d\n", i, getpid());
+            #endif
 
             while(ftp(connfd) == 0);
             Close(connfd);
