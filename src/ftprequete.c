@@ -29,7 +29,6 @@ void requestGETs(int connfd, request_t req){
         response.fileSize = 0;
         Rio_writen(connfd, &response, sizeof(response_t));
         fprintf(stdout, "Invalid file name %s\n", req.nomfic);
-        fclose(fd);
         return;
     }
 
@@ -58,6 +57,7 @@ void requestGETs(int connfd, request_t req){
         fprintf(stderr, "writing packet %d with size %ld\n", i, sizePacket);
         i++;
     }
+    free(file);
     fclose(fd);
 }
 
