@@ -29,6 +29,7 @@ void requestGETs(int connfd, request_t req){
         response.fileSize = 0;
         Rio_writen(connfd, &response, sizeof(response_t));
         fprintf(stdout, "Invalid file name %s\n", req.nomfic);
+        fclose(fd);
         return;
     }
 
@@ -40,13 +41,14 @@ void requestGETs(int connfd, request_t req){
         response.fileSize = 0;
         Rio_writen(connfd, &response, sizeof(response_t));
         fprintf(stdout, "Unsuccessful write on socket\n");
+        fclose(fd);
         return;
     }
 
     response.code = 0;
     response.fileSize = fileSize;
-    response.nbPackets = fileSize/PACKET_SIZE;
-    response.lastPacketSize = fileSize%PACKET_SIZE;
+    response.nbPackets = fileSize/PACKET_SIZE; // nombre de paquets entiers
+    response.lastPacketSize = fileSize%PACKET_SIZE; // taille du dernier paquet
     Rio_writen(connfd, &response, sizeof(response_t));
 
     size_t sizePacket;
@@ -56,9 +58,10 @@ void requestGETs(int connfd, request_t req){
         fprintf(stderr, "writing packet %d with size %ld\n", i, sizePacket);
         i++;
     }
+    fclose(fd);
 }
 
-void ftp(int connfd){
+int ftp(int connfd){
     rio_t rio;
 
     Rio_readinitb(&rio, connfd);
@@ -67,11 +70,20 @@ void ftp(int connfd){
 
     if(req.typereq == GET){
         requestGETs(connfd, req);
+        return 0;
+    }
+    else if(req.typereq == BYE){
+        response_t response;
+        response.code = 0;
+        response.fileSize = 0;
+        Rio_writen(connfd, &response, sizeof(response_t));
+        return 1;
     }
     else{
         response_t response;
         response.code = 3;
         response.fileSize = 0;
         Rio_writen(connfd, &response, sizeof(response_t));
+        return 0;
     }
 }

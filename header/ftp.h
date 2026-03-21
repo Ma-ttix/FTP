@@ -3,7 +3,7 @@
 
 #define PACKET_SIZE 4096
 
-typedef enum {GET, FAUX}typereq_t;
+typedef enum {GET, BYE, FAUX}typereq_t;
 
 typedef struct{
     typereq_t typereq;

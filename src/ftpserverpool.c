@@ -9,7 +9,7 @@
 #define NPROC 10
 #endif
 
-void ftp(int connfd);
+int ftp(int connfd);
 
 void handlerSIGCHLD(int sig){
     while(waitpid(-1, NULL, WNOHANG)>0);
@@ -66,7 +66,7 @@ int main(int argc, char **argv)
             printf("server connected to %s (%s)\n", client_hostname, client_ip_string);
             printf("connected using child %d of pid %d\n", i, getpid());
 
-            ftp(connfd);
+            while(ftp(connfd) == 0);
             Close(connfd);
             printf("server disconnected to %s (%s)\n", client_hostname, client_ip_string);
         }
