@@ -8,6 +8,7 @@ typedef enum {GET, BYE, FAUX}typereq_t;
 typedef struct{
     typereq_t typereq;
     char nomfic[MAXLINE];
+    long offset;
 } request_t;
 
 typedef struct{

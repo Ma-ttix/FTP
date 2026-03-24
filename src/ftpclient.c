@@ -44,11 +44,31 @@ int traiterErreur(int code){
     }
 }
 
+void gestionPanne(request_t* req){
+    char crash[MAXLINE + 7]; // + 7 pour la taille de "client/"
+    snprintf(crash, sizeof(crash), "client/%s", req->nomfic);
+    struct stat buffer;
+    if(stat(crash, &buffer)!=0) return; // si pas de fichier de crash -> aucun traitement
+    if(!S_ISREG(buffer.st_mode)) return;  // existe mais c'est pas un fichier
+
+    FILE* file = fopen(crash, "ab");
+    if(!file){
+        perror("fopen");
+        exit(1);
+    }
+    fseek(file, 0, SEEK_END);
+    req->offset = ftell(file);
+    fclose(file);
+}
+
 void requestGETc(rio_t* rio, request_t* req, response_t* response, struct timeval* debut){
     char tmp[MAXLINE + 7]; // + 7 pour la taille de "client/"
     snprintf(tmp, sizeof(tmp), "client/%s", req->nomfic);
     strcpy(req->nomfic, tmp);
-    FILE* fd = fopen(req->nomfic, "w");
+    char* mode;
+    if(req->offset!=0) mode = "ab";
+    else mode = "wb";
+    FILE* fd = fopen(req->nomfic, mode);
     if(!fd){
         perror("fopen");
         exit(1);
@@ -57,30 +77,47 @@ void requestGETc(rio_t* rio, request_t* req, response_t* response, struct timeva
     char* packet = malloc(PACKET_SIZE);
     if(packet == NULL){
         perror("malloc");
+        fclose(fd);
         exit(1);
     }
+
+    fseek(fd, req->offset, SEEK_SET); // potentiellement inutile car ab place à la fin et wb écrase le fichier donc fichier vide (peut être source d'erreur)
     size_t fileSize = response->fileSize;
     int i = 0;
     while(i!=response->nbPackets){
         size_t packetRead = Rio_readnb(rio, packet, PACKET_SIZE);
         size_t bytesWritten = fwrite(packet, 1, packetRead, fd);
+        fflush(fd);
         if(bytesWritten!=packetRead){
             perror("fwrite");
             free(packet);
+            fclose(fd);
             exit(1);
         }
+        #ifdef TALK
+        fprintf(stdout, "writing packet %d\n", i);
+        #endif
         i++;
     }
 
     if(response->lastPacketSize!=0){
         size_t packetRead = Rio_readnb(rio, packet, response->lastPacketSize);
         size_t bytesWritten = fwrite(packet, 1, packetRead, fd);
+        fflush(fd);
         if(bytesWritten!=packetRead){
             perror("fwrite");
             free(packet);
+            fclose(fd);
             exit(1);
         }
+        #ifdef TALK
+        fprintf(stdout, "writing packet %d\n", i);
+        #endif
     }
+    #ifdef TALK
+    fprintf(stdout,"File Size: %ld Packets: %d, Last Packet Size: %ld\n", response->fileSize, response->nbPackets, response->lastPacketSize);
+    fprintf(stdout, "Offset: %ld\n", req->offset);
+    #endif
 
     fprintf(stdout, "Successful write on file: %s\n", req->nomfic);
 
@@ -139,6 +176,7 @@ int main(int argc, char **argv)
 
         request_t req; //= malloc(sizeof(request_t));
         strcpy(req.nomfic, ""); // initialisation du nom de fichier à vide
+        req.offset = 0; // initialisation du décalage à 0
         traiterNomCommande(&req, reqUser[0]);
         if(reqUser[1]) strcpy(req.nomfic, reqUser[1]); // si on a un 2ème argument (if nécessaire sinon segfault)
         free(reqUser);
@@ -146,6 +184,7 @@ int main(int argc, char **argv)
             fprintf(stderr, "Missing file name\nUsage: get <filename>\n");
             continue;
         }
+        gestionPanne(&req);
 
         Rio_writen(clientfd, &req, sizeof(request_t)); // envoie la requête au serveur
 

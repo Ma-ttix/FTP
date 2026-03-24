@@ -44,22 +44,32 @@ void requestGETs(int connfd, request_t req){
         return;
     }
 
+    if(fseek(fd, req.offset, SEEK_SET)!=0){
+        perror("fseek");
+        response.code = 2;
+        response.fileSize = 0;
+        Rio_writen(connfd, &response, sizeof(response_t));
+        fprintf(stdout, "Unsuccessful write on socket\n");
+        fclose(fd);
+        return;
+    }
+
     response.code = 0;
-    response.fileSize = fileSize;
-    response.nbPackets = fileSize/PACKET_SIZE; // nombre de paquets entiers
-    response.lastPacketSize = fileSize%PACKET_SIZE; // taille du dernier paquet
+    response.fileSize = fileSize - req.offset;
+    response.nbPackets = (fileSize - req.offset)/PACKET_SIZE; // nombre de paquets entiers
+    response.lastPacketSize = (fileSize - req.offset)%PACKET_SIZE; // taille du dernier paquet
     Rio_writen(connfd, &response, sizeof(response_t));
 
     size_t sizePacket;
     int i = 0;
-    while((sizePacket = fread(file, 1, PACKET_SIZE, fd)) > 0){
+    while((sizePacket = fread(file, 1, PACKET_SIZE, fd)) > 0){ // dans cet ordre car fread renvoie le nombre de paquets lus (pas le nombre d'octets) donc problème pour le dernier paquet si dans l'autre sens
         Rio_writen(connfd, file, sizePacket);
         #ifdef TALK
         fprintf(stderr, "writing packet %d with size %ld\n", i, sizePacket);
         #endif
         i++;
     }
-    fprintf(stdout, "Ssuccessful write on socket\n");
+    fprintf(stdout, "Successful write on socket\n");
     free(file);
     fclose(fd);
 }
