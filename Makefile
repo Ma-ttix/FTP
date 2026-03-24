@@ -30,6 +30,10 @@ ifdef TALK
 CFLAGS += -DTALK=$(TALK)
 endif
 
+ifdef NBSLAVES
+CFLAGS += -DNBSLAVES=$(NBSLAVES)
+endif
+
 all: gendir $(PROGS)
 
 gendir:
