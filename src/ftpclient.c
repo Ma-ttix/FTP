@@ -134,7 +134,7 @@ void requestGETc(rio_t* rio, request_t* req, response_t* response, struct timeva
 
 int main(int argc, char **argv)
 {
-    int clientfd, port;
+    int clientfd; //port;
     char *host;//, buf[MAXLINE];
     rio_t rio;
 
@@ -143,14 +143,23 @@ int main(int argc, char **argv)
         exit(1);
     }
     host = argv[1];
-    port = 2121;
+    //port = 2121;
 
     /*
      * Note that the 'host' can be a name or an IP address.
      * If necessary, Open_clientfd will perform the name resolution
      * to obtain the IP address.
      */
-    clientfd = Open_clientfd(host, port);
+    clientfd = Open_clientfd(host, 2122); // connection serveur maitre
+    Rio_readinitb(&rio, clientfd);
+
+    int portEsclave;
+    Rio_readnb(&rio, &portEsclave, sizeof(int)); // lecture vers le serveur maitre du port de l'esclave
+
+    Close(clientfd);
+
+    clientfd = Open_clientfd(host, portEsclave); // connection serveur esclave
+    Rio_readinitb(&rio, clientfd);
 
     /*
      * At this stage, the connection is established between the client

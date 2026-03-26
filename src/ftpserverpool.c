@@ -41,7 +41,7 @@ int main(int argc, char **argv)
     Signal(SIGCHLD, handlerSIGCHLD);
     Signal(SIGINT, handlerSIGINT);
 
-    port = 2121;
+    port = atoi(argv[1]);
 
     listenfd = Open_listenfd(port);
     int pid = -1;
