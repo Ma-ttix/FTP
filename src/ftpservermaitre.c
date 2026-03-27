@@ -24,7 +24,7 @@ int main(){
 
     int esclave[NBSLAVES]; // initialisation d'un tableau afin de stocker les différents ports des serveurs esclaves
 
-    for(int i= 0; i < NBSLAVES; i++) {
+    for(int i= 0; i < NBSLAVES; i++){
         esclave[i] = port + 1 + i; // permet d'ajouter un nouveau numéro de port à chaque serveur esclave
     }
 
@@ -37,7 +37,7 @@ int main(){
 
     if(pid == 0){
         #ifdef TALK
-        printf("Slave server %d of pid %d listening on port %d created\n", i, getpid(), esclave[i]);
+        printf("Slave server %d of pid %d listening on port %d created\n", i, getpid(), esclave[i-1]);
         #endif
         char slavePort[6];
         snprintf(slavePort, sizeof(slavePort), "%d", esclave[i-1]); // -1 car pas d'esclave 0, l'esclave 1 récupère donc son port dans esclave[0]
@@ -46,17 +46,17 @@ int main(){
         exit(1);
     }
 
+    // partie uniquement exécutée par le père/serveur maître
     int esclaveCourant = 0;
 
     while(1){
         connfd = accept(listenfd, NULL, NULL);
 
         int portEsclave = esclave[esclaveCourant];
+        Rio_writen(connfd, &portEsclave, sizeof(int));
         esclaveCourant = (esclaveCourant + 1) % NBSLAVES;
 
-        Rio_writen(connfd, &portEsclave, sizeof(int));
-
-        printf("Client redirigé vers le port %d\n", portEsclave);
+        printf("Client redirected to slave server on port %d\n", portEsclave);
 
         Close(connfd);
     }
