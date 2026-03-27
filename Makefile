@@ -13,7 +13,7 @@ HDRDIR = header/
 SRCS=$(wildcard $(SRCDIR)*.c)
 HEADERS=$(SRCS:$(SRCDIR)%.c=$(HDRDIR)%.h)
 OBJS=$(SRCS:$(SRCDIR)%.c=$(OBJDIR)%.o)
-PROGS = ftpclient ftpserverpool
+PROGS = ftpclient ftpserverpool ftpservermaitre
 OBJS := $(filter-out $(PROGS:%=$(OBJDIR)%.o), $(OBJS)) # to remove the objects corresponding to $(PROGS)
 
 CC = gcc
