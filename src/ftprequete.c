@@ -65,7 +65,7 @@ void requestGETs(int connfd, request_t req){
     while((sizePacket = fread(file, 1, PACKET_SIZE, fd)) > 0){ // dans cet ordre car fread renvoie le nombre de paquets lus (pas le nombre d'octets) donc problème pour le dernier paquet si dans l'autre sens
         Rio_writen(connfd, file, sizePacket);
         #ifdef TALK
-        fprintf(stderr, "writing packet %d with size %ld\n", i, sizePacket);
+        fprintf(stdout, "writing packet %d with size %ld\n", i, sizePacket);
         #endif
         i++;
     }

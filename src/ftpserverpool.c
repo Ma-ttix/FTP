@@ -37,7 +37,6 @@ int main(int argc, char **argv)
         exit(0);
     }*/
 
-    setpgid(0, 0);
     Signal(SIGCHLD, handlerSIGCHLD);
     Signal(SIGINT, handlerSIGINT);
 
@@ -52,9 +51,9 @@ int main(int argc, char **argv)
     }
     if(pid == 0){
         #ifdef TALK
-        printf("im the child %d of pid %d\n", i, getpid());
+        printf("Executant process %d of pid %d from server %d created\n", i, getpid(), getppid());
         #endif
-        while (1) {
+        while(1){
 
             connfd = accept(listenfd, (SA *)&clientaddr, &clientlen);
             if(connfd < 0) continue;
@@ -65,14 +64,17 @@ int main(int argc, char **argv)
             /* determine the textual representation of the client's IP address */
             Inet_ntop(AF_INET, &clientaddr.sin_addr, client_ip_string, INET_ADDRSTRLEN);
 
-            printf("server connected to %s (%s)\n", client_hostname, client_ip_string);
+            printf("Server %d connected to %s (%s)\n", getppid(), client_hostname, client_ip_string);
             #ifdef TALK
-            printf("connected using child %d of pid %d\n", i, getpid());
+            printf("Connected using child %d of pid %d\n", i, getpid());
             #endif
 
             while(ftp(connfd) == 0);
             Close(connfd);
-            printf("server disconnected to %s (%s)\n", client_hostname, client_ip_string);
+            printf("Server %d disconnected to %s (%s)\n", getppid(), client_hostname, client_ip_string);
+            #ifdef TALK
+            printf("Disonnected from child %d of pid %d\n", i, getpid());
+            #endif
         }
     }
     else{
