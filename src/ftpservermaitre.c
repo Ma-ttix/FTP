@@ -1,25 +1,58 @@
 #include "csapp.h"
+
 #ifndef NBSLAVES
 #define NBSLAVES 3
 #endif
-int main() {
-    int listenfd = Open_listenfd(2122); // port 2122 car de mon pc le port 2121 ne marche pas ( already use)  à changé s'il remarche
+
+void handlerSIGCHLD(int sig){
+    while(waitpid(-1, NULL, WNOHANG)>0);
+}
+
+void handlerSIGINT(int sig){
+    kill(0, SIGINT);
+    exit(0);
+}
+
+int main(){
+    setpgid(0, 0);
+    Signal(SIGCHLD, handlerSIGCHLD);
+    Signal(SIGINT, handlerSIGINT);
+
+    int port = 2121;
+    int listenfd = Open_listenfd(port);
     int connfd;
 
-    int Esclave[NBSLAVES]; // initialisation d'un tableau afin de stocker les différents serveurs esclaves
-    int portBase = 2123;
+    int esclave[NBSLAVES]; // initialisation d'un tableau afin de stocker les différents ports des serveurs esclaves
+
     for(int i= 0; i < NBSLAVES; i++) {
-        Esclave[i] = portBase + i; // permet d'ajouter un nouveau numéro de port à chaque serveur esclave
+        esclave[i] = port + 1 + i; // permet d'ajouter un nouveau numéro de port à chaque serveur esclave
+    }
+
+    int pid = -1;
+    int i = 0;
+    while(pid!=0 && i!=NBSLAVES){
+        pid = Fork();
+        i++;
+    }
+
+    if(pid == 0){
+        #ifdef TALK
+        printf("Slave server %d of pid %d listening on port %d created\n", i, getpid(), esclave[i]);
+        #endif
+        char slavePort[6];
+        snprintf(slavePort, sizeof(slavePort), "%d", esclave[i-1]); // -1 car pas d'esclave 0, l'esclave 1 récupère donc son port dans esclave[0]
+        execlp("./ftpserverpool", "./ftpserverpool", slavePort, NULL);
+        perror("execlp");
+        exit(1);
     }
 
     int esclaveCourant = 0;
 
-    while(1) {
+    while(1){
         connfd = accept(listenfd, NULL, NULL);
 
-        int portEsclave = Esclave[esclaveCourant];
-        esclaveCourant = (esclaveCourant + 1) % NBSLAVES; // si par exemple 3 nbslaves (de 0 à 2)alors: Esclave[0] -> esclaveCourant = 0 + 1 %3 = 1 ainsi de suite jusqu'a
-                                                            // Esclave[2] -> esclaveCourant = 2 + 1 % 3 = 0 (on revient au premier serveur esclave)
+        int portEsclave = esclave[esclaveCourant];
+        esclaveCourant = (esclaveCourant + 1) % NBSLAVES;
 
         Rio_writen(connfd, &portEsclave, sizeof(int));
 
