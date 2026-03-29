@@ -45,6 +45,7 @@ int main(int argc, char **argv)
 
     Signal(SIGCHLD, handlerSIGCHLD);
     Signal(SIGINT, handlerSIGINT);
+    Signal(SIGPIPE, SIG_IGN); // afin de ne pas tuer le processus si son client a crash
 
     port = atoi(argv[1]);
 
