@@ -11,12 +11,18 @@
 
 int ftp(int connfd);
 
+int pidchild[NPROC];
+
 void handlerSIGCHLD(int sig){
     while(waitpid(-1, NULL, WNOHANG)>0);
 }
 
 void handlerSIGINT(int sig){
-    kill(0, SIGINT);
+    int i = 0;
+    while(i!=NPROC){
+        if(pidchild[i]!=0) kill(pidchild[i], SIGINT);
+        i++;
+    }
     exit(0);
 }
 
@@ -47,6 +53,7 @@ int main(int argc, char **argv)
     int i = 0;
     while(pid!=0 && i!=NPROC){
         pid = Fork();
+        pidchild[i] = pid;
         i++;
     }
     if(pid == 0){
