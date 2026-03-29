@@ -12,3 +12,6 @@ La compilation par défaut `make` est équivalent à `make NPROC=10 NBSLAVES=3`
 ## Exécution
 Une fois le projet compilé, il suffit de lancer le serveur grâce à l'exécutable `ftpservermaitre`, puis de lancer le client (privilégier l'exécution dans un autre terminal par soucis de clarté (notamment si l'option TALK est activé)) avec `ftpclient` qui prend en argument l'host (ex: localhost)\
 Pour réaliser le transfert d'un fichier, il suffit de taper la commande get dans le client suivi du nom de fichier qu'on souhaite récupérer (ce fichier doit se trouver dans le répertoire *server/*), ainsi ce dernier sera transféré dans le répertoire *client/*
+
+## Vérification
+Afin de vérifier si le transfert s'est bien réalisé et que le fichier est identique, on utilise le script `compare_txt.sh` qui fonctionne en passant en argument les noms des fichiers qu'on souhaite vérifier et qui pour chacun vérifie s'il existe dans *server/* et dans *client/* et s'il identique dans les deux répertoires
