@@ -25,8 +25,8 @@ void requestGETs(int connfd, request_t req){
     }
     else{
         perror("fopen");
-        response.code = 1;
-        response.fileSize = 0;
+        response.code = htonl(1);
+        response.fileSize = htobe64(0);
         Rio_writen(connfd, &response, sizeof(response_t));
         fprintf(stdout, "Invalid file name %s\n", req.nomfic);
         return;
@@ -36,8 +36,8 @@ void requestGETs(int connfd, request_t req){
     char* file = malloc(PACKET_SIZE);
     if(file == NULL){
         perror("malloc");
-        response.code = 2;
-        response.fileSize = 0;
+        response.code = htonl(2);
+        response.fileSize = htobe64(0);
         Rio_writen(connfd, &response, sizeof(response_t));
         fprintf(stdout, "Unsuccessful write on socket\n");
         fclose(fd);
@@ -46,18 +46,18 @@ void requestGETs(int connfd, request_t req){
 
     if(fseek(fd, req.offset, SEEK_SET)!=0){
         perror("fseek");
-        response.code = 2;
-        response.fileSize = 0;
+        response.code = htonl(2);
+        response.fileSize = htobe64(0);
         Rio_writen(connfd, &response, sizeof(response_t));
         fprintf(stdout, "Unsuccessful write on socket\n");
         fclose(fd);
         return;
     }
 
-    response.code = 0;
-    response.fileSize = fileSize - req.offset;
-    response.nbPackets = (fileSize - req.offset)/PACKET_SIZE; // nombre de paquets entiers
-    response.lastPacketSize = (fileSize - req.offset)%PACKET_SIZE; // taille du dernier paquet
+    response.code = htonl(0);
+    response.fileSize = htobe64(fileSize - req.offset);
+    response.nbPackets = htonl((fileSize - req.offset)/PACKET_SIZE); // nombre de paquets entiers
+    response.lastPacketSize = htobe64((fileSize - req.offset)%PACKET_SIZE); // taille du dernier paquet
     Rio_writen(connfd, &response, sizeof(response_t));
 
     size_t sizePacket;
@@ -80,6 +80,8 @@ int ftp(int connfd){
     Rio_readinitb(&rio, connfd);
     request_t req;
     Rio_readnb(&rio, &req, sizeof(request_t));
+    req.typereq = ntohl(req.typereq);
+    req.offset = be64toh(req.offset);
 
     if(req.typereq == GET){
         requestGETs(connfd, req);
@@ -87,15 +89,15 @@ int ftp(int connfd){
     }
     else if(req.typereq == BYE){
         response_t response;
-        response.code = 0;
-        response.fileSize = 0;
+        response.code = htonl(0);
+        response.fileSize = htobe64(0);
         Rio_writen(connfd, &response, sizeof(response_t));
         return 1;
     }
     else{
         response_t response;
-        response.code = 3;
-        response.fileSize = 0;
+        response.code = htonl(3);
+        response.fileSize = htobe64(0);
         Rio_writen(connfd, &response, sizeof(response_t));
         return 0;
     }

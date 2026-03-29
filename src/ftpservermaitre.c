@@ -53,7 +53,9 @@ int main(){
         connfd = accept(listenfd, NULL, NULL);
 
         int portEsclave = esclave[esclaveCourant];
+        portEsclave = htonl(portEsclave);
         Rio_writen(connfd, &portEsclave, sizeof(int));
+        portEsclave = ntohl(portEsclave); // re changement pour pouvoir l'utiliser ici plus tard
         esclaveCourant = (esclaveCourant + 1) % NBSLAVES;
 
         printf("Client redirected to slave server on port %d\n", portEsclave);

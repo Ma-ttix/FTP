@@ -155,6 +155,7 @@ int main(int argc, char **argv)
 
     int portEsclave;
     Rio_readnb(&rio, &portEsclave, sizeof(int)); // lecture vers le serveur maitre du port de l'esclave
+    portEsclave = ntohl(portEsclave);
 
     Close(clientfd);
 
@@ -195,10 +196,18 @@ int main(int argc, char **argv)
         }
         gestionPanne(&req);
 
+        req.offset = htobe64(req.offset);
+        req.typereq = htonl(req.typereq);
         Rio_writen(clientfd, &req, sizeof(request_t)); // envoie la requête au serveur
+        req.offset = be64toh(req.offset); // re changement pour pouvoir l'utiliser ici plus tard
+        req.typereq = ntohl(req.typereq);
 
         response_t response;
         Rio_readnb(&rio, &response, sizeof(response_t));
+        response.code = ntohl(response.code);
+        response.fileSize = be64toh(response.fileSize);
+        response.lastPacketSize = be64toh(response.lastPacketSize);
+        response.nbPackets = ntohl(response.nbPackets);
         if(traiterErreur(response.code) == 1) continue; // code exécuté après ça signifie qu'on a pas eu d'erreur
 
         if(req.typereq == GET){
